@@ -4,11 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>여행 계획 생성기</title>
+    <style>
+      #planForm {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-width: 240px;
+      }
+    </style>
   </head>
   <body>
+    <section>
+      <form id="planForm">
+        <input type="text" name="destination" placeholder="장소" />
+        <input type="text" name="purpose" placeholder="목적" />
+        <input type="number" name="people_count" placeholder="인원 수" />
+        <label>
+          출발 날짜
+          <input type="date" name="start_date" />
+        </label>
+        <label>
+          복귀 날짜
+          <input type="date" name="end_date" />
+        </label>
+        <button>생성</button>
+      </form>
+    </section>
     <section id="planBox"></section>
     <script>
+      //DOM
       const planBox = document.querySelector("#planBox");
+      const planForm = document.querySelector("#planForm");
+      // 함수
       async function renderPlans() {
         const url = "http://localhost:3000/plans";
         const response = await fetch(url);
@@ -25,6 +52,26 @@
           planBox.appendChild(planItem);
         }
       }
+      planForm.addEventListener("submit", async (event) => {
+        // event 타입을 IDE가 인식해서 메서드나 값들을 사용할 수 있음
+        event.preventDefault(); // Form 기본 이동 막기
+        const formData = new FormData(event.currentTarget); // planForm 넣어도 무관
+        // fromEntries -> 객체화
+        console.log(...formData.entries());
+        const planObj = Object.fromEntries(formData.entries());
+        console.log(planObj);
+        const url = "http://localhost:3000/plans";
+        const response = await fetch(url, {
+          method: "POST", // #1
+          headers: {
+            "Content-Type": "application/json", // #2
+          },
+          body: JSON.stringify(planObj), // #3
+        });
+        if (!response.ok) return alert("생성 과정에서 에러가 발생했습니다");
+        alert("정상적으로 생성되었습니다");
+        renderPlans();
+      });
       document.addEventListener("DOMContentLoaded", renderPlans);
     </script>
   </body>
