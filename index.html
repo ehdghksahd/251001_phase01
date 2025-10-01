@@ -18,13 +18,13 @@
       <form id="planForm">
         <input type="text" name="destination" placeholder="장소" />
         <input type="text" name="purpose" placeholder="목적" />
-        <input type="number" name="people_count" placeholder="인원 수" />
+        <input type="number" name="people_count" placeholder="인원수" />
         <label>
-          출발 날짜
+          시작일 :
           <input type="date" name="start_date" />
         </label>
         <label>
-          복귀 날짜
+          종료일 :
           <input type="date" name="end_date" />
         </label>
         <button>생성</button>
@@ -32,7 +32,7 @@
     </section>
     <section id="planBox"></section>
     <script>
-      //DOM
+      // DOM
       const planBox = document.querySelector("#planBox");
       const planForm = document.querySelector("#planForm");
       // 함수
@@ -41,23 +41,47 @@
         const response = await fetch(url);
         const data = await response.json();
         console.log(data);
+        planBox.innerHTML = "";
         for (const p of data) {
           const planItem = document.createElement("div");
           planItem.innerHTML = `
             <h4>${p.destination}</h4>
-            <div>[목적]${p.purpose}<div/>
-            <div>[인원 수]${p.people_count}명 </div>
-            <div>${p.start_date} ~ ${p.end_date}</div>
-            `;
-          planBox.appendChild(planItem);
+            <div>[목적] ${p.purpose}</div>
+            <div>[인원수] ${p.people_count}</div>
+            <div>[시작일] ${p.start_date}</div>
+            <div>[종료일] ${p.end_date}</div>
+            <div>[추천계획] ${p.ai_suggestion}</div>
+          `;
+          const removeBtn = document.createElement("button");
+          removeBtn.textContent = "삭제";
+          removeBtn.addEventListener("click", async () => {
+            // const planId = p.id;
+            const { id: planId } = p;
+            const url = "http://localhost:3000/plans";
+            const response = await fetch(url, {
+              method: "DELETE", // #1
+              headers: {
+                "Content-Type": "application/json", // #2
+              },
+              body: JSON.stringify({ planId }), // #3
+            });
+            if (!response.ok) {
+              return alert("삭제 과정에서 에러가 발생했습니다!");
+            }
+            alert("정상적으로 삭제되었습니다!");
+            await renderPlans();
+          });
+          planItem.append(removeBtn);
+          planBox.append(planItem);
         }
       }
       planForm.addEventListener("submit", async (event) => {
         // event 타입을 IDE가 인식해서 메서드나 값들을 사용할 수 있음
         event.preventDefault(); // Form 기본 이동 막기
-        const formData = new FormData(event.currentTarget); // planForm 넣어도 무관
-        // fromEntries -> 객체화
+        const formData = new FormData(event.currentTarget);
+        // planForm을 넣어도 괜찮음.
         console.log(...formData.entries());
+        // fromEntries -> 객체화
         const planObj = Object.fromEntries(formData.entries());
         console.log(planObj);
         const url = "http://localhost:3000/plans";
@@ -68,10 +92,13 @@
           },
           body: JSON.stringify(planObj), // #3
         });
-        if (!response.ok) return alert("생성 과정에서 에러가 발생했습니다");
-        alert("정상적으로 생성되었습니다");
-        renderPlans();
+        if (!response.ok) {
+          return alert("생성 과정에서 에러가 발생했습니다!");
+        }
+        alert("정상적으로 생성되었습니다!");
+        await renderPlans();
       });
+
       document.addEventListener("DOMContentLoaded", renderPlans);
     </script>
   </body>
