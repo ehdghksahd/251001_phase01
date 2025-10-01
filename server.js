@@ -4,7 +4,7 @@ const cors = require("cors"); // 설치한 의존성 패키지 cors를 불러오
 const dotenv = require("dotenv");
 const { createClient } = require("@supabase/supabase-js"); // 구조분헤 할당
 const { GoogleGenAI } = require("@google/genai");
-
+const { Groq } = require("groq-sdk");
 dotenv.config(); // .env -> KEY => SUPABASE_KEY
 // NODE -> process.env (환경변수) // cf. env file
 
@@ -39,16 +39,14 @@ app.get("/plans", async (req, res) => {
   res.json(data);
 });
 
-// 1. SDK
-// 2. API Key <- .env
-// 3. 여러 단계를 프롬프팅 -> (값) => (프롬프트) => (결과값)
 app.post("/plans", async (req, res) => {
   const plan = req.body;
-  // ai를 통해
-  // npm install @google/genai
   const result = await chaining(plan);
-  // plan.ai_suggestion = response2.text;
   plan.ai_suggestion = result;
+  // 최종적으로 작성된 계획 -> 최소/최대 경비
+  const { minBudget, maxBudget } = await ensemble(result);
+  plan.ai_min_budget = minBudget;
+  plan.ai_max_budget = maxBudget;
   const { error } = await supabase.from("tour_plan").insert(plan);
   if (error) {
     return res.status(400).json({ error: error.message });
@@ -115,4 +113,46 @@ async function chaining(plan) {
     },
   });
   return response2.text;
+}
+async function ensemble(result) {
+  const groq = new Groq(); // api key -> GROQ_API_KEY -> 환경변수가 알아서 인식
+  const models = [
+    "moonshotai/kimi-k2-instruct-0905",
+    "openai/gpt-oss-120b",
+    "meta-llama/llama-4-maverick-17b-128e-instruct",
+  ];
+  const responses = await Promise.all(
+    models.map(async (model) => {
+      // https://console.groq.com/docs/structured-outputs
+      const response = await groq.chat.completions.create({
+        response_format: {
+          type: "json_object",
+        },
+        messages: [
+          {
+            role: "system",
+            content: `여행 경비 산출 전문가로, 주어진 여행 계획을 바탕으로 '원화 기준'의 숫자로만 작성된 예산을 작성하기. 응답은 JSON 형식으로 {"min_budget":"최소 예산", "max_budget": "최대 예산"}`,
+          },
+          {
+            role: "user",
+            content: result,
+          },
+        ],
+        model,
+      });
+      console.log(response.choices[0].message.content);
+      const { min_budget, max_budget } = JSON.parse(
+        response.choices[0].message.content
+      );
+      return {
+        min_budget: Number(min_budget),
+        max_budget: Number(max_budget),
+      };
+    })
+  );
+  console.log(responses);
+  return {
+    minBudget: Math.min(...responses.map((v) => v.min_budget)),
+    maxBudget: Math.max(...responses.map((v) => v.max_budget)),
+  };
 }
