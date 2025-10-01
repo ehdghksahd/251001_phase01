@@ -1,6 +1,16 @@
 // es-module -> import, commonjs -> require
 const express = require("express"); // express 안에 이미 구현되어 있는 코드들을 express 객체 형태로 불러오겠다.
 const cors = require("cors"); // 설치한 의존성 패키지 cors를 불러오기
+const dotenv = require("dotenv");
+const { createClient } = require("@supabase/supabase-js"); // 구조분헤 할당
+
+dotenv.config(); // .env -> KEY => SUPABASE_KEY
+// NODE -> process.env (환경변수) // cf. env file
+
+// const supabaseKey = process.env.SUPABASE_KEY;
+// const supabaseUrl = process.env.SUPABASE_URL;
+const { SUPABASE_KEY: supabaseKey, SUPABASE_URL: supabaseUrl } = process.env;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const app = express(); // () -> 호출해서 사용하겠다.
 // 포트 -> 1 ~ 2xxxx. => 특정한 번호로...
@@ -8,7 +18,7 @@ const port = 3000; // cra. next -> express. / 5173
 // localhost -> 3000. / 5500? <-> 구분해주는 의미
 
 // CORS 해결을 위한 미들웨어 적용
-app.use(cors());
+app.use(cors()); // 모든 출처에 대한 허용 (보안적으로 바람직하지 X)
 
 // get, post...
 // app.방식(접속경로, 핸들러)
@@ -17,6 +27,14 @@ app.get("/", (req, res) => {
   // req -> request -> 전달 받은 데이터나 요청사항
   // res -> response -> 응답할 내용/방식을 담은 객체
   res.send("bye");
+});
+
+app.get("/plans", async (req, res) => {
+  const { data, error } = await supabase.from("tour_plan").select("*");
+
+  if (error) return res.status(400).json({ error: error.message });
+
+  res.json(data);
 });
 
 // DOM listener / server '대기' -> 특정한 요청 -> 응답
