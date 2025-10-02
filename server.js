@@ -28,7 +28,8 @@ app.use(express.json()); // req.body -> json
 app.get("/", (req, res) => {
   // req -> request -> 전달 받은 데이터나 요청사항
   // res -> response -> 응답할 내용/방식을 담은 객체
-  res.send("bye");
+  // res.send("bye");
+  res.sendFile(__dirname, "index.html");
 });
 
 app.get("/plans", async (req, res) => {
