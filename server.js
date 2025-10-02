@@ -1,6 +1,7 @@
 // es-module -> import, commonjs -> require
 const express = require("express"); // express 안에 이미 구현되어 있는 코드들을 express 객체 형태로 불러오겠다.
 const cors = require("cors"); // 설치한 의존성 패키지 cors를 불러오기
+const path = require("path");
 const dotenv = require("dotenv");
 const { createClient } = require("@supabase/supabase-js"); // 구조분헤 할당
 const { GoogleGenAI } = require("@google/genai");
@@ -29,7 +30,7 @@ app.get("/", (req, res) => {
   // req -> request -> 전달 받은 데이터나 요청사항
   // res -> response -> 응답할 내용/방식을 담은 객체
   // res.send("bye");
-  res.sendFile(__dirname, "index.html");
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 app.get("/plans", async (req, res) => {
